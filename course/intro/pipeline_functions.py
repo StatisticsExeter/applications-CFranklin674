@@ -6,7 +6,7 @@ import plotly.express as px
 
 
 def plot_scatter(df, x_name, y_name):
-    px.scatter(df, x="x_name", y="y_name")
+    px.scatter(df, x=x_name, y=y_name)
     """Given a dataframe containing numeric columns specified by x_name and y_name
     return a plotly express scatterplot"""
     fig = px.scatter(df, x=x_name, y=y_name)

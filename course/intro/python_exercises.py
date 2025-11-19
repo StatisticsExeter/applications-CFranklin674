@@ -68,5 +68,5 @@ def drop_missing(df):
 def value_counts_df(df, column):
     """Given a dataframe 'df' with various columns and the name of one of those columns 'column',
     return a DataFrame with value counts of the specified column."""
-    res = df[column].value_counts().reset_index()
-    return res
+    val = df[column].value_counts().reset_index()
+    return val
