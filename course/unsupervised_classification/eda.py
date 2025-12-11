@@ -22,3 +22,24 @@ def _scatter(df, title):
     numeric_values = df.select_dtypes(include="number")
     fig = px.scatter_matrix(numeric_values, title=title)
     return fig
+
+
+def plot_corr_matrix():
+    base_dir = find_project_root()
+    df = pd.read_csv(base_dir / 'data_cache' / 'la_collision.csv')
+    corr = df.corr(numeric_only=True)
+    outpath = base_dir / VIGNETTE_DIR / 'corr_matrix.html'
+    fig = px.imshow(
+                  corr,
+                  text_auto=True,
+                  color_continuous_scale='RdBu_r',
+                  title='Correlation Matrix'
+                  )
+    fig.write_html(outpath)
+
+
+def data_preview():
+    base_dir = find_project_root()
+    df = pd.read_csv(base_dir / 'data_cache' / 'la_collision.csv')
+    outpath = base_dir / VIGNETTE_DIR / 'preview.html'
+    df.head().to_html(outpath, index=False)

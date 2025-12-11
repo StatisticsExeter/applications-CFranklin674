@@ -2,10 +2,12 @@ from scipy.cluster.hierarchy import linkage, fcluster
 import plotly.figure_factory as ff
 import plotly.express as px
 import pandas as pd
+import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from pathlib import Path
 from course.utils import find_project_root
+
 
 VIGNETTE_DIR = Path('data_cache') / 'vignettes' / 'unsupervised_classification'
 
@@ -76,3 +78,22 @@ def _scatter_clusters(df):
     fig = px.scatter(df, x='PC1', y='PC2', color='cluster',
                      title="PCA Scatter Plot Colored by Cluster Labels")
     return fig
+
+
+def scree_plot():
+    base_dir = find_project_root()
+    df = pd.read_csv(base_dir / 'data_cache' / 'la_collision.csv')
+    outpath = base_dir / VIGNETTE_DIR / 'scree_plot.html'
+    scaler = StandardScaler()
+    scaled_df = pd.DataFrame(scaler.fit_transform(df), columns=df.columns)
+    pca = PCA(n_components=None)
+    pcas = pca.fit(scaled_df)
+    PC_values = np.arange(1, pca.n_components_ + 1)
+    fig = px.line(
+        x=PC_values,
+        y=pca.explained_variance_ratio_,
+        markers=True,
+        labels={"x": "Principal Component", "y": "Variance Explained"},
+        title="Scree Plot"
+    )
+    fig.write_html(outpath)

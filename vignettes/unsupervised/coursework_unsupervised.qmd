@@ -4,122 +4,274 @@ author: "Anonymous"
 format: 
   html:
     embed-resources: true
-
 ---
 
-## Your task
+## The Dataset
 
-This material is provided as context to the problem. You should rewrite it as you see fit.  IN particular, you should demonstrate you understand why we are undertaking a cluster analysis, and what the various methods are telling us.  In particular, you should explain how principal components helps us visualise the results of the clustering.
+In Great Britain, STATS19 is a collision reporting system which provides data on "personal injury collisions on public roads that are reported to the police". This data is available for the public [here](https://www.data.gov.uk/dataset/cb7ae6f0-4be6-4935-9277-47e5ce24a11f/road-accidents-safety-data).
 
+Within, you will find three tables:
 
-## The Problem
+-   Collisions
 
-Police recorded data in Great Britain is called "Stats19" and is available at <https://www.data.gov.uk/dataset/cb7ae6f0-4be6-4935-9277-47e5ce24a11f/road-accidents-safety-data>.  These data are typically split into three linked tables:
+    In this table, each row represents a single reported accident and includes fields such as:
 
-- Accidents
+    -   Date and time
+    -   Location (e.g. latitude/longitude, local authority)
+    -   Road type and conditions
+    -   Weather and lighting
+    -   Number of vehicles and casualties
 
-  Each row represents a single reported accident. Key fields include:
+-   Vehicles
 
-  - Date and time
-  - Location (e.g. latitude/longitude, local authority)
-  - Road type and conditions
-  - Weather and lighting
-  - Number of vehicles and casualties
+    In this table, each row represents a vehicle involved in an accident and includes such fields as:
 
-- Vehicles
+    -   Vehicle type and age
+    -   Manoeuvre and direction
+    -   Driver's age and sex
 
-  Each row represents a vehicle involved in an accident. Includes:
+and finally,
 
-  - Vehicle type and age
-  - Manoeuvre and direction
-  - Driver age and sex
+-   Casualties
 
-- Casualties
-  
-  Each row represents a person injured or killed. Includes:
+    In this table, each row represents a person injured or killed and includes such fields as:
 
-  - Casualty type (pedestrian, cyclist, driver, etc.)
-  - Severity (slight, serious, fatal)
-  - Age, sex, and mode of transport
+    -   Casualty type (pedestrian, cyclist, driver, etc.)
+    -   Severity (slight, serious, fatal)
+    -   Age, sex, and mode of transport
 
-These tables are linked via a unique accident index.
+These tables are then linked via a unique accident index.
 
+The data that will be used in this report contains a count of the number of collisions at a Mini-roundabout, in the Rain, in the Dark, when the road is Dry, in an urban setting, and where the most seriously injured casualty was reported as having a slight injury.
 
-We are interested in creating clusters of like authorities based on the kinds of collisions that occur in their area.  You have been given a count of the number of collisions at Mini-roundabout, in the Rain, in the Dark, when the road is Dry, in an urban setting and where the most seriously injured casualty was reported as having a slight injury.
+## Problem Introduction
 
-Some previous cluster analysis work has been reported at:
+What this report asks is: can we group together similar authorities based on the types of collisions that occur in their area?
 
-- [ Cluster analysis](https://ijirt.org/publishedpaper/IJIRT175966_PAPER.pdf)
-- [More cluster analysis](https://www.researchgate.net/publication/357727987_Identification_of_Traffic_Accident_Patterns_via_Cluster_Analysis_and_Test_Scenario_Development_for_Autonomous_Vehicles/fulltext/61dcdc17034dda1b9eebd63d/Identification-of-Traffic-Accident-Patterns-via-Cluster-Analysis-and-Test-Scenario-Development-for-Autonomous-Vehicles.pdf)
+Below is a table showing the first few rows of the dataset:
 
+```{python}
+#| echo: false
+html_path = "../../data_cache/vignettes/unsupervised_classification/preview.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
 
-## The Data
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
 
-The first thing we can do is consider a scatterplot of the data
+We can see that the first column contains the total for the number of collisions, while all the other variables are proportions. This is important to know, since using proportions means that authorities with large numbers of collisions will not dominate the analysis and we can instead focus on the patterns emerging. What should also be noted is that there are no categorical labels for each of the observations, which means that any groupings we find will be determined only by the numerical data.
 
-![](../../data_cache/vignettes/unsupervised_classification/scatterplot.html){width="100%" height="600px"}
+Before applying any clustering methods, let's visually examine the data using a scatterplot matrix.
 
-We are going to use the proportion of each subtype of collision that was reported, and rescale the variables.
+```{python}
+#| echo: false
+html_path = "../../data_cache/vignettes/unsupervised_classification/scatterplot.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
 
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
+
+Looking at this, there seems to be a relationship between some of the variables, for example there appears to be a negative correlation between collisions that occur when it is raining and when it is dry, which makes logical sense. Other pairings seem to show little to no visible correlation, such as dark and slight injuries.
+
+This can also be seen in the following correlation matrix.
+
+```{python}
+#| echo: false
+html_path = "../../data_cache/vignettes/unsupervised_classification/corr_matrix.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
+
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
+
+Here we can see that does seem to be a fairly strong negative correlation between collisions that occur when it is raining and when it is dry.
+
+Now we have visualised the data, we can move into looking for similarities and grouping. To begin with we will perform hierarchical clustering.
 
 ## Hierarchical clustering
 
+Hierarchical clustering is an unsupervised technique used to group similar observations into clusters. It is an ideal first step since we do not need to specify the number of clusters in advance and, it produces a dendrogram, a visual summary to help understand the structure of the data.
 
-The first task is to perform hierarchical clustering.
+In order to do this, we use the proportions of each variable and rescale them to ensure no one variable dominates the clustering. This then produces the dendrogram below.
 
-![](../../data_cache/vignettes/unsupervised_classification/dendrogram.html){width="100%" height="600px"}
+```{python}
+#| echo: false
+html_path = "../../data_cache/vignettes/unsupervised_classification/dendrogram.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
 
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
 
-You need to select a suitable ``cut-point'' and cut the tree at an appropriate height to form a number of clusters.
+We can see there are many clusters joining at a low height, suggesting that those observations are very similar to each other, but there are also some individual observations that merge much higher. Based on this structure, a suitable 'cut-point' for the tree is around the height of 18. This will result in 4 distinct clusters. Cutting any higher runs the risk of oversimplifying, there is a large jump from the bottom two clusters to where they merge meaning there is a relatively large distance between those clusters, however a small change up or down from 18 would not meaningfully change the clusters.
 
-To aid visualisation of results, you should plot the cluster membership on a scatterplot of the first two principal components.
+Now that we have identified 4 distinct clusters, we need to visualise them. However, since we cannot visualise the six-dimensional space that the data is in, we need to perform Principal Component Analysis (PCA). This reduces the number of dimensions to principal components that retain most of the original information. To help assess how many principal components contribute meaningfully, we will use a scree plot.
 
+```{python}
+#| echo: false
+html_path = "../../data_cache/vignettes/unsupervised_classification/scree_plot.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
 
-![](../../data_cache/vignettes/unsupervised_classification/kscatter.html){width="100%" height="600px"}
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
 
+We can see that there appears to be an 'elbow' around 3-4 components and looking at the figures, 81.5% of the total variance is explained by PC1-PC4. These seem to capture most of the structure of the data, however visualising this is not practical. The first two components alone explain 60.5% of the variance, which captures a substantial amount and allows us to effectively visualise the data and these clusters.
+
+```{python}
+#| echo: false
+html_path = "../../data_cache/vignettes/unsupervised_classification/hscatter.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
+
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
+
+We can now see how the 4 clusters appear when projected onto the first two principle components. We can see some separation of our clusters in this space, for example the red cluster in particular seems to be compact and separated from the others. However, the green cluster appears to have a bit of overlap with purple and blue, suggesting their separation may be clearer in more dimensions.
+
+A silhouette score can help us evaluate how well the clusters are separated. Whilst the scatterplot provides an effective way to visualise these clusters in reduced dimensions, the silhouette score can give us a quantitative measure of how distinct these clusters are by comparing the distance each point is from its own cluster to other clusters.
+
+```{python}
+#| echo: false
+import pandas as pd
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score
+from scipy.cluster.hierarchy import linkage, fcluster
+
+df = pd.read_csv('/Users/charlottefranklin/Documents/Exeter Masters/Applications of Data Science and Statistics/Applications of Data Science/data_cache/la_collision.csv')
+scaler = StandardScaler()
+data_scaled = scaler.fit_transform(df)
+
+Z = linkage(data_scaled, method='ward')
+n_clusters = 4
+cluster_labels = fcluster(Z, t=n_clusters, criterion='maxclust')
+
+pca2 = PCA(n_components=2)
+pc2 = pca2.fit_transform(data_scaled)
+score2 = silhouette_score(pc2, cluster_labels)
+print(f"Silhouette score on first 2 PCs: {score2:.3f}")
+
+# PCA with 3 components
+pca3 = PCA(n_components=3)
+pc3 = pca3.fit_transform(data_scaled)
+score3 = silhouette_score(pc3, cluster_labels)
+print(f"Silhouette score on first 3 PCs: {score3:.3f}")
+```
+
+As we can see, the silhouette score using the first two principal components is 0.239 which doesn't suggest a particularly strong clustering, however what is interesting is that when a third component is added, the score actually goes down to 0.192. This suggests that adding an extra dimension does not improve the clarity of the cluster structure and supports the earlier decision to choose two components for visualisation.
+
+Overall, hierarchical clustering gives us a useful initial overview of how this data may naturally group. To further assess these results, we shall compare them to another clustering method: k-means clustering.
 
 ## kmeans clustering
 
+Having examined the structure of the data using hierarchical clustering, let us compare it to the k-means clustering method. Unlike hierarchical clustering, which creates a nested tree (dendrogram) showing how observations can be grouped at different similarity levels and allows us to choose where to 'cut' the tree to create our groups, k-means requires us to choose the number of clusters in advance. It then splits the data into these clusters using an iterative method to minimise the within cluster distance. K-means is a useful technique, and provides cluster centroids, the average position of all the points within the cluster, that help to interpret the clusters produced.
 
-The second task is to perform k-means clustering. You should select an appropriate number of clusters.
-First, you should look at the cluster centroids:
+The first step, therefore, is to decide upon the number of clusters. Our hierarchical clustering gave us four clusters from the dendrogram, which could be a sensible initial guess. However, we can create an elbow plot to help us choose the optimal number of clusters. This measures the distance between each point and its cluster center, then calculates the "within cluster sum of squares" (WCSS) for different numbers of clusters.
+
+```{python}
+#| echo: false
+html_path = "../../data_cache/vignettes/unsupervised_classification/elbow.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
+
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
+
+It would seem our plot does not show an obvious 'elbow', instead the within cluster sum of squares score is gradually decreasing as the number of clusters increase. This perhaps suggests that the clusters are not well-defined and another method might be needed to help choose a value of k.
+
+Like earlier, we can use the silhouette score.
+
+```{python}
+#| echo: false
+from sklearn.metrics import silhouette_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+import pandas as pd
+
+df = pd.read_csv('/Users/charlottefranklin/Documents/Exeter Masters/Applications of Data Science and Statistics/Applications of Data Science/data_cache/la_collision.csv')
+scaler = StandardScaler()
+scaled_df = scaler.fit_transform(df)
+pca = PCA(n_components=2)
+pca_df = pca.fit_transform(scaled_df)
+kmeans3 = KMeans(n_clusters=3, random_state=42)
+cluster_labels3 = kmeans3.fit_predict(pca_df)
+score3 = silhouette_score(pca_df, cluster_labels3)  # or scaled_df if clustering on full data
+print(f'Silhouette score for 3 clusters: {score3:.3f}')
+
+kmeans = KMeans(n_clusters=4, random_state=42)
+cluster_labels = kmeans.fit_predict(pca_df)
+score = silhouette_score(pca_df, cluster_labels)  # or scaled_df if clustering on full data
+print(f'Silhouette score for 4 clusters: {score:.3f}')
 
 
-![](../../data_cache/vignettes/unsupervised_classification/kcentroids1.html){width="100%" height="600px"}
+```
 
+These silhouette scores would suggest that three clusters would be the better choice, so that is what we will use going forward.
 
-![](../../data_cache/vignettes/unsupervised_classification/kcentroids2.html){width="100%" height="600px"}
+To begin with, we can look at the cluster centroids. Since the first column in the dataset, the n_total column, has much larger values than the others, this will be plotted separately to avoid it dominating the scale.
 
+```{python}
+#| echo: false
+html_path = "../../data_cache/vignettes/unsupervised_classification/kcentroids1.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
 
-As before you should plot the cluster membership on a scatterplot of the first two principal components.
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
 
-![](../../data_cache/vignettes/unsupervised_classification/kscatter.html){width="100%" height="600px"}
+Then we can look at the six variables themselves and how they contribute to the cluster.
 
+```{python}
+#| echo: false
+html_path = "../../data_cache/vignettes/unsupervised_classification/kcentroids2.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
 
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
 
+We can see that cluster 1's bar is higher for the dry, urban and slight variables, suggesting that these are key features of that group. Whereas mini-roundabouts and dark have roughly the same average value for each cluster, suggesting it does not contribute meaningfully to the separation of groups.
 
+Just like with our hierarchical clustering, we can visualise these clusters on a PCA scatterplot.
 
-##  Additional credit
+```{python}
+#| echo: false
+html_path = "../../data_cache/vignettes/unsupervised_classification/kscatter.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
 
-For additional credit you should consider adding a further unsupervised classification method. Alternatively, you could increase the number of variables used in the clustering.
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
 
+Here we can see three clear clusters, which are broadly similar to the groups that were generated by the hierarchical clustering. There is a small amount of overlap between the blue and red clusters, but otherwise each group seems well separated. The green cluster does appear to be more spread out, which may be due to greater variation in that group.
 
+Overall, our analysis has shown that unsupervised learning methods can help reveal patterns in our collision data. Hierarchical clustering provided an initial look at the data and helped decide upon the number of clusters that could reasonably explain the data. Whilst the subsequent k-means clustering allowed us to look at how individual variables contribute to each cluster via centroids. We were then able to visualise these structures using PCA scatterplots for both techniques.
 
 ## Record of AI use for MTHM503 unsupervised coursework
 
 Instructions: You can use this document to record when, how and why you used GenAI to complete your assessment. It will help you create a record of AI use to submit alongside your references for AI-integrated and AI-assisted assignments. It may also be useful to help you discuss your AI use if you are required to do so in an academic conduct meeting.
 
-| **Date**       | **AI tool used** | **Purpose**                                | **Prompt**                                 | **Hyperlink to output (where possible)** | **Section of work used for** |
-|----------------|------------------|--------------------------------------------|--------------------------------------------|------------------------------------------|-------------------------------|
-| E.g. 15/07/2025| MS Copilot       | To help create an organised essay structure| ‘Generate ideas for structuring an essay on...’ | [insert link]                          | introduction                  |
-|                |                  |                                            |                                            |                                          |                               |
-|                |                  |                                            |                                            |                                          |                               |
-|                |                  |                                            |                                            |                                          |                               |
-|                |                  |                                            |                                            |                                          |                               |
-|                |                  |                                            |                                            |                                          |                               |
-|                |                  |                                            |                                            |                                          |                               |
-|                |                  |                                            |                                            |                                          |                               |
-|                |                  |                                            |                                            |                                          |                               |
-
-
-
+| **Date** | **AI tool used** | **Purpose** | **Prompt** | **Hyperlink to output (where possible)** | **Section of work used for** |
+|------------|------------|------------|------------|------------|------------|
+| E.g. 15/07/2025 | MS Copilot | To help create an organised essay structure | ‘Generate ideas for structuring an essay on...’ | \[insert link\] | introduction |
+| 05/12/2025 | ChatGPT | To help write the code to display the html graphs | 'I have saved a scatterplot as an html from some plotly python code. I want to embed that file into a quarto, how can I do this without changing the code or moving files?' |  | Introduction |
+| 09/12/2025 | ChatGPT | To help write code to calculate the silhouette score | 'How do I write a python code to calculate the silhouette score from hierarchical clustering?' |  | Hierarchical clustering |
+| 09/12/2025 | ChatGPT | To check my understanding and help amend my code to create an elbow plot | 'I have a dataset with a total column and 6 variables given as proportions. Would it be correct to remove the total column when creating an elbow plot for kmeans clustering?' and 'How would I write a python code to do so?' |  | Kmeans clustering |
+|  |  |  |  |  |  |
+|  |  |  |  |  |  |
+|  |  |  |  |  |  |
+|  |  |  |  |  |  |
+|  |  |  |  |  |  |

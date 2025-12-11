@@ -2,8 +2,11 @@ from pathlib import Path
 from doit.tools import config_changed
 from course.utils import load_pg_data
 from course.unsupervised_classification.eda import plot_scatter
-from course.unsupervised_classification.tree import hierarchical_groups, hcluster_analysis
+from course.unsupervised_classification.eda import plot_corr_matrix
+from course.unsupervised_classification.eda import data_preview
+from course.unsupervised_classification.tree import hierarchical_groups, hcluster_analysis, scree_plot
 from course.unsupervised_classification.kmeans import kmeans
+from course.unsupervised_classification.kmeans import elbow_plot
 
 
 def task_check_cache_data():
@@ -46,37 +49,48 @@ def task_crash_summaries():
 
 def task_eda():
     return {
-      'actions': [plot_scatter],
+      'actions': [plot_scatter, plot_corr_matrix, data_preview],
       'file_dep': ['data_cache/la_collision.csv',
                    'course/unsupervised_classification/eda.py'],
-      'targets': ['data_cache/vignettes/supervised_classification/scatterplot.html']
+      'targets': ['data_cache/vignettes/unsupervised_classification/scatterplot.html',
+                  'data_cache/vignettes/unsupervised_classification/corr_matrix.html',
+                  'data_cache/vignettes/unsupervised_classification/preview.html']
     }
 
 
 def task_hcluster_analysis():
     return {
-      'actions': [hcluster_analysis],
+      'actions': [hcluster_analysis, scree_plot],
       'file_dep': ['data_cache/la_collision.csv',
                    'course/unsupervised_classification/tree.py'],
-      'targets': ['data_cache/vignettes/supervised_classification/dendrogram.html']
+      'targets': ['data_cache/vignettes/unsupervised_classification/dendrogram.html',
+                  'data_cache/vignettes/unsupervised_classification/scree_plot.html']
     }
 
 
 def task_hierarchical_groups():
     return {
-      'actions': [lambda: hierarchical_groups(20)],
+      'actions': [lambda: hierarchical_groups(18)],
       'file_dep': ['data_cache/la_collision.csv',
                    'course/unsupervised_classification/tree.py'],
-      'targets': ['data_cache/vignettes/supervised_classification/hscatter.html']
+      'targets': ['data_cache/vignettes/unsupervised_classification/hscatter.html']
     }
 
 
 def task_kmeans():
     return {
-      'actions': [lambda: kmeans(4)],
+      'actions': [lambda: kmeans(3)],
       'file_dep': ['data_cache/la_collision.csv',
-                   'course/unsupervised_classification/tree.py'],
-      'targets': ['data_cache/vignettes/supervised_classification/kscatter.html',
-                  'data_cache/vignettes/supervised_classification/kcentroids1.html'
-                  'data_cache/vignettes/supervised_classification/kcentroids2.html']
+                   'course/unsupervised_classification/kmeans.py'],
+      'targets': ['data_cache/vignettes/unsupervised_classification/kscatter.html',
+                  'data_cache/vignettes/unsupervised_classification/kcentroids1.html'
+                  'data_cache/vignettes/unsupervised_classification/kcentroids2.html']
+    }
+    
+def task_elbow():
+    return {
+      'actions': [elbow_plot],
+      'file_dep': ['data_cache/la_collision.csv',
+                   'course/unsupervised_classification/kmeans.py'],
+      'targets': ['data_cache/vignettes/unsupervised_classification/elbow.html']
     }

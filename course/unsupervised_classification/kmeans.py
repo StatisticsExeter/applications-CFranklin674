@@ -62,3 +62,27 @@ def _plot_centroids(scaled_centers, scaler, colnames, k):    # Melt for grouped 
         title='Cluster Centers by Feature (Original Scale)'
     )
     return fig1, fig2
+
+
+def elbow_plot():
+    base_dir = find_project_root()
+    df = pd.read_csv(base_dir / 'data_cache' / 'la_collision.csv')
+    outpath = base_dir / VIGNETTE_DIR / 'elbow.html'
+    proportion_cols = df.columns[1:]  # assuming 'total' is the first column
+    df_proportions = df[proportion_cols]
+    scaler = StandardScaler()
+    data_scaled = scaler.fit_transform(df_proportions)
+    cluster_range = range(1, 11)
+    wcss = []
+    for k in cluster_range:
+        kmeans = KMeans(n_clusters=k, random_state=42)
+        kmeans.fit(data_scaled)
+        wcss.append(kmeans.inertia_)
+    elbow_df = pd.DataFrame({
+                            "k": cluster_range,
+                            "WCSS": wcss
+                            })
+    fig = px.line(elbow_df, x="k", y="WCSS", markers=True,
+                  title="K-means Elbow Plot",
+                  labels={"k": "Number of clusters", "WCSS": "Within-Cluster Sum of Squares"})
+    fig.write_html(outpath)
