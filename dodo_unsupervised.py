@@ -86,7 +86,8 @@ def task_kmeans():
                   'data_cache/vignettes/unsupervised_classification/kcentroids1.html'
                   'data_cache/vignettes/unsupervised_classification/kcentroids2.html']
     }
-    
+
+
 def task_elbow():
     return {
       'actions': [elbow_plot],

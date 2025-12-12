@@ -66,4 +66,3 @@ def regression_diagnostics():
     outpath = Path('data_cache/models/residuals_vs_fitted.html')
     outpath.parent.mkdir(parents=True, exist_ok=True)
     fig.write_html(outpath)
-    
