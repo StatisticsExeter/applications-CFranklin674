@@ -51,10 +51,10 @@ def count_occurrences(lst):
     return a dictionary with counts of each unique element in the list."""
     res = {}
     for item in lst:
-      if item in res:
-        res[item] += 1
-      else:
-        res[item] = 1
+        if item in res:
+            res[item] += 1
+        else:
+            res[item] = 1
     return res
 
 

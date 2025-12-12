@@ -3,7 +3,7 @@ import plotly.express as px
 from sklearn.metrics import classification_report
 from course.utils import find_project_root
 from pathlib import Path
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import confusion_matrix
 
 
 VIGNETTE_DIR = Path('data_cache') / 'vignettes' / 'supervised_classification'
@@ -58,8 +58,8 @@ def confusion_matrix_report(y_test_path, y_pred_path, cm_path):
     cm = confusion_matrix(y_test, y_pred)
     cm_df = pd.DataFrame(cm)
     cm_df.to_csv(cm_path, index=False)
-    
-    
+
+
 def confusion_matrix_lda():
     base_dir = find_project_root()
     y_test_path = base_dir / "data_cache" / "energy_y_test.csv"

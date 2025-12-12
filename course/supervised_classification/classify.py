@@ -31,4 +31,3 @@ def fit_qda():
     passed to fit_classifier and fitted by classifer.fit()"""
     classifier = QuadraticDiscriminantAnalysis()
     fit_classifier(X_train_path, y_train_path, model_path, classifier)
-
