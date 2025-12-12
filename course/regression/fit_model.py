@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import statsmodels.formula.api as smf
-import statsmodels.api as sm
 import plotly.express as px
 from pathlib import Path
 from course.utils import find_project_root
@@ -51,8 +50,6 @@ def regression_diagnostics():
     df_plot = df.copy()
     df_plot['fitted'] = results.fittedvalues
     df_plot['residuals'] = df_plot['shortfall'] - df_plot['fitted']
-    
-    # Create plot
     fig = px.scatter(
         df_plot,
         x='fitted',
@@ -61,8 +58,6 @@ def regression_diagnostics():
         title='Residuals vs Fitted'
     )
     fig.add_hline(y=0, line_dash='dash', line_color='red')
-    
-    # Save interactive HTML
     outpath = Path('data_cache/models/residuals_vs_fitted.html')
     outpath.parent.mkdir(parents=True, exist_ok=True)
     fig.write_html(outpath)
