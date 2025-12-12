@@ -3,7 +3,7 @@ from doit.tools import config_changed
 from course.utils import load_pg_data
 from course.supervised_classification.classify import fit_qda, fit_lda
 from course.supervised_classification.predict import pred_lda, pred_qda
-from course.supervised_classification.metrics import metric_report_lda, metric_report_qda
+from course.supervised_classification.metrics import metric_report_lda, metric_report_qda, confusion_matrix_lda, confusion_matrix_qda
 from course.supervised_classification.split_test_train import test_and_train
 from course.supervised_classification.eda import plot_scatter, get_summary_stats
 from course.supervised_classification.roc_curve import plot_roc_curve
@@ -133,4 +133,22 @@ def task_roc_curve():
       'file_dep': ['data_cache/energy_y_test.csv',
                    'data_cache/models/qda_y_pred_prob.csv'],
       'targets': ['vignettes/supervised_classication/roc.html']
+    }
+
+
+def task_confusion_lda():
+    return {
+      'actions': [confusion_matrix_lda],
+      'file_dep': ['data_cache/models/lda_y_pred.csv', 'data_cache/energy_y_test.csv',
+                   'course/supervised_classification/metrics.py'],
+      'targets': ['data_cache/vignettes/supervised_classification/lda_confusion_matrix.csv']
+    }
+    
+    
+def task_confusion_qda():
+    return {
+      'actions': [confusion_matrix_qda],
+      'file_dep': ['data_cache/models/qda_y_pred.csv', 'data_cache/energy_y_test.csv',
+                   'course/supervised_classification/metrics.py'],
+      'targets': ['data_cache/vignettes/supervised_classification/qda_confusion_matrix.csv']
     }

@@ -7,44 +7,44 @@ format:
 
 ---
 
-## Your task
+## The Dataset
 
-This material is provided as context to the problem. You should rewrite it as you see fit.
+In March 2025, data on the [Energy Certificates](https://epc.opendatacommunities.org/) of a non-random sample of UK housing were obtained. The full dataset contains 93 variables on a wide range of metrics such as:
 
-## The Problem
-
-Data on [Energy Certificates](https://epc.opendatacommunities.org/) were downloaded in March 2025. These certificates are a non-random sample of UK housing, and contain information such as:
-
-- Property energy efficiency: The core data is the energy efficiency rating, which ranges from A (most efficient) to G (least efficient).
-- CO2 emissions: The data includes information on the building's likely carbon dioxide emissions.
-- Energy costs: Potential costs for heating and lighting the property are provided.
+- The energy efficiency of the property: This is the core data and is rated from A (most efficient) to G (least efficient).
+- CO2 emissions: This is the building's likely carbon dioxide emissions.
+- Energy costs: These are the potential costs for heating and lighting the property.
 - Improvement recommendations: Each EPC lists cost-effective ways to improve the building's energy performance.
 
-In all, there are 93 variables available on a wide range of metrics. The full dataset is in the course database server at `10.121.4.250` in `energy.energy_certificates`
-
-The data have been used for various published supervised classification exercises:
-
-- ONS data science campus EPC data to predict energy efficiency ratings across Welsh properties. They applied models like XGBoost and found that features such as floor area, number of habitable rooms, and extension count were most predictive <https://datasciencecampus.ons.gov.uk/projects/using-machine-learning-to-predict-energy-efficiency/>
-- EPC anomaly detection (improve data quality) <https://www.iaarc.org/publications/fulltext/102_A_Comprehensive_Approach_for_Automated_Anomaly_Detection_and_Enhancement_of_EPC_Datasets_for_Decarbonization.pdf>
-- Identifying priorities for retrofit strategy <https://uwlpress.uwl.ac.uk/newvistas/article/id/299/>
-- EPC prediction <https://github.com/yourunclefrankie/Energy-efficiency-prediction>
-
-In reducing the carbon footprint of UK housing, it is important to develop a strategy that offers the right solutions to the right properties. It is widely believed that houses build before 1930 require very different approaches to houses built after that period.  In this task, you are required to determine whether it is possible to determine the age of a house based on several recorded energy metrics. These are `current_energy_efficiency`, `environment_impact_current`, `energy_consumption_current`, `co2_emissions_current`, `lighting_cost_current`, `heating_cost_current`, `hot_water_cost_current`.  You have data for all certificates issued in a single local authority area.  This would help the local authority identify the right targets just using metrics rather than requiring a visit to the property to determine its age.
+As we move toward being a more energy conscious society, it is important that we develop strategies to reduce the carbon footprint of UK housing by offering the right solutions to the right properties. For example, it is widely believed that houses built before 1930 require a very different approach to those built later.
 
 
+## Problem Introduction
 
+What this report asks is: is it possible to determine the age of a house based on several recorded energy metrics?
 
-## The Data
+If we can do this, then local authorities will be able to identify the right targets through the recorded metrics rather than requiring a visit to the property to determine its age.
 
-A very simple preview of the data is given below:
+Below is a table showing the first few rows of the dataset we will be working with. These are all the certificates issued in a single local authority area:
+
+```{python}
+#| echo: false
+html_path = "../../data_cache/vignettes/supervised_classification/preview.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
+
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
+
+We can see that we have been given the categorical age of the house as well as several energy performance metrics, including current energy efficiency, environment impact, energy consumption, carbon dioxide emissions, lighting costs, heating costs, and hot water.
+
+To gain an initial understanding of the data, we can do some exploratory data analysis, beginning with a simple table examining the frequency of each group.
 
 ```{python}
 #| echo: false
 import pandas as pd
 ```
-
-And a clumsy presentation of some group summary statistics:
-
 
 ```{python}
 #| echo: false
@@ -54,6 +54,7 @@ print(df.round(3).to_markdown(index=False))
 ```
 
 
+This is useful as it tells us there are two groupings in the dataset: "Pre-30s" and "Post-30s", which is logical given the earlier belief. Now we can calculate the summary statistics per group.
 
 ```{python}
 #| echo: false
@@ -62,20 +63,73 @@ df = pd.read_csv('../../data_cache/vignettes/supervised_classification/grouped_s
 print(df.round(3).to_markdown(index=False))
 ```
 
-It is always useful to view a scatterplot of the data, marking the two known groups
+From this we can see that, typically, pre-1930s houses have a higher energy consumption, greater carbon dioxide emissions, and substantially higher heating costs compared to post-1930s houses. They also consistently have a higher standard deviation across all variables, showing there is a greater variability within the data for older houses. 
+
+An interesting observation is under lighting costs. Each of the summary statistics are roughly similar for both both age ranges, except the maximum post 1930s value which is considerably higher. This may simply be representing an outlier though.
+
+We can also visualise this data on a scatterplot matrix.
+
+```{python}
+#| echo: false
+html_path = "../../data_cache/vignettes/supervised_classification/scatterplot.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
+
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
+
+There appears to be some correlation between variables across both groups. For example, positive relationships can be seen between carbon dioxide emissions and heating costs, as well as current energy efficiency and environment impact. There are also some pairings that suggest either little to no correlation or potentially something non-linear.
+
+Having explored the makeup of the data, we can now look to fit a classifier to predict the age of a house and categorise new, unseen properties based upon their energy metrics.
+
+One final visualisation we can do is looking at a covariance matrix for each group. Covariance measures how two variables change together, and by comparing these across both ages, we can assess how similar they are.
+
+```{python}
+#| echo: false
+import pandas as pd
+import plotly.express as px
+
+df = pd.read_csv('/Users/charlottefranklin/Documents/Exeter Masters/Applications of Data Science and Statistics/Applications of Data Science/data_cache/energy.csv')
+
+metrics = ['current_energy_efficiency','energy_consumption_current','co2_emissions_current',
+           'lighting_cost_current','heating_cost_current','hot_water_cost_current']
+
+groups = df['built_age'].unique()
+
+for grp in groups:
+    # Select only numeric metrics and drop rows with NaN
+    df_grp = df[df['built_age']==grp][metrics].dropna(axis=0, how='any')
+    
+    # Drop any columns that are now entirely empty (optional but safe)
+    df_grp = df_grp.loc[:, df_grp.notna().any()]
+    
+    # Only compute covariance if there’s enough data
+    if df_grp.shape[0] < 2:
+        print(f"Not enough data for group {grp} to compute covariance.")
+        continue
+    
+    cov = df_grp.cov()
+    
+    fig = px.imshow(
+        cov,
+        text_auto=True,
+        color_continuous_scale='RdBu_r',
+        title=f'Covariance Matrix: {grp}'
+    )
+    fig.show()
+```
+
+Looking at our matrices, we can see that there is some similarity, therefore we shall proceed to fit an Linear Discriminant Analysis (LDA) classifier.
 
 
-![](../../data_cache/vignettes/supervised_classification/scatterplot.html){width="100%" height="600px"}
+## Fitting classifiers
 
+### Linear Discriminant Analysis
 
+Linear Discriminant Analysis is a technique used in supervised learning to perform dimensionality reduction to identify a linear combination of features (in this case energy metrics) that best separates the data into groups (pre and post-1930s).
 
-For more marks, you may wish to extend this EDA section slightly.  We can extract the performance metrics from fitting such models:
-
-
-## Fitting LDA and QDA classifiers
-
-The simplest classifiers we could apply are Linear and Quadratic Discriminant analysis.
-
+The results of fitting an LDA are below.
 
 ```{python}
 #| echo: false
@@ -85,7 +139,33 @@ df.rename(columns={"Unnamed: 0": "Category"}, inplace=True)
 print(df.round(3).to_markdown(index=False))
 ```
 
-### Results from fitting a quadratic discriminant analysis
+Important values to note are the precision (of all the houses predicted in this category, what proportion are correct?), recall (of all the actual houses in this category, what proportion were identified correctly?), F1 score (which balances precision and recall), and accuracy (how many houses were identified correctly?).
+
+73% of houses that were predicted as post-30s were correct, and 69% of actual post-30s were correctly identified. Compared to 75% and 79% for pre-30s houses respectively. Therefore, it would appear that the model is better at identifying pre-30s houses.
+
+With an overall accuracy of 74%, the LDA classifier performs moderately well, correctly identifying roughly 3 out of 4 houses.
+
+To further examine the accuracy of this classifier, we can look at its confusion matrix.
+
+```{python}
+#| echo: false
+html_path = "../../data_cache/vignettes/supervised_classification/lda_confmat.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
+
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
+
+This confirms the pattern we saw in the LDA. There were 6301 of the 9140 post-30s houses identified correctly, whilst 2839 of them were incorrectly classified as pre-30s. Meanwhile, 8660 of the 10,957 pre-30s houses were identified correctly and 2297 were misclassified. Overall suggesting that older houses have more well defined energy profiles, whilst newer houses are more likely to be misclassified, perhaps due to some of them overlapping with older ones.
+
+One assumption when using an LDA classifier is that the covariance of the groups is similar, however we saw earlier that there is some difference in variability across the features. Therefore, we can extend this to use a Quadratic Discriminant Analysis classifier.
+
+### Quadratic Discriminant Analysis
+
+Quadratic Discriminant Analysis (QDA) is similar to LDA, except we now assume that the covariance can be different for each group. It also gives us more flexible decision boundary, which allows it to capture more complex relationships between features.
+
+The results of fitting a QDA are below.
 
 ```{python}
 #| echo: false
@@ -95,22 +175,43 @@ df.rename(columns={"Unnamed: 0": "Category"}, inplace=True)
 print(df.round(3).to_markdown(index=False))
 ```
 
-You should comment on these results. You may wish to add an interpretation of the coefficients of these classifiers.  Or there may be other metrics (confusion matrix) that you think should be presented.
+Immediately we can see that the overall accuracy of 62.7% is noticeably lower than our LDA result of 73%. The recall of post-30s houses is now 88.7%, showing the model is identifying these houses well, however with a precision of 55.7%, many pre-30s houses are being incorrectly classified. For the pre-30s houses, a precision of 81.3% suggests that when the model predicts a pre-30s house, it is usually correct, however it misses a lot of actual pre-30s houses.
 
+Therefore, the added flexibility that using QDA gives us does not necessarily improve our classifier for this dataset.
+
+As with before, we can also view the confusion matrix for the QDA.
+
+```{python}
+#| echo: false
+html_path = "../../data_cache/vignettes/supervised_classification/qda_confmat.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
+
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
+
+This time around we have 8107 of the 9140 post-30s houses being identified correctly, and only 1033 being classified as pre-30s. For the older houses, 4502 of the 10,957 were identified correctly and 6455 were misclassified. This suggests that this model identifies newer houses more reliably than older ones, but struggles to correctly classify the pre-30s group.
+
+Now that we have seen how many of our houses were correctly classified, we can move onto evaluating how well the model separates the two groups by using a AUC-ROC curve.
 
 ## ROC curve (and AUC) for two simple classifiers
 
-We can of course examine the AUC for these classifiers.
+As mentioned, the AUC-ROC curve shows us how well the classifier separates the two groups (pre-30s and post-30s) by providing a visual representation of the trade-offs between true positive rate and false positive rate at various thresholds. The curve is below.
 
+```{python}
+#| echo: false
+html_path = "../../data_cache/vignettes/supervised_classification/roc.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
 
-![](../../data_cache/vignettes/supervised_classification/roc.html){width="100%" height="600px"}
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
 
+From this we can see that the LDA model has an AUC of 0.54 meaning it's slightly better than random guessing. Whereas the QDA model performs far worse, with an AUC of 0.37. From the graph we can see that the curve dips below the diagonal for most thresholds meaning that the false positive rate is higher than the true positive rate, causing the model to more often predict the wrong class. This is consistent with our confusion matrix earlier where there were many pre-30s houses being identified as post-30s.
 
-You should comment on the performance of the classifier.
-
-##  Additional credit
-
-For additional credit you should consider extended the pipeline and trying out other classifiers.
+All-in-all our analysis has shown that it is possible to predict the age of a house based on their energy metrics. The LDA provided a more accurate model, correctly identifying 3 out of 4 houses, however the AUC score suggested that it was only slightly better than random at distinguishing between pre- and post-30s houses. These are not the only classifiers though, a Logistic Regression classifier may provide a better model.
 
 
 ## Record of AI use for MTHM503 supervised coursework
@@ -120,10 +221,9 @@ Instructions: You can use this document to record when, how and why you used Gen
 | **Date**       | **AI tool used** | **Purpose**                                | **Prompt**                                 | **Hyperlink to output (where possible)** | **Section of work used for** |
 |----------------|------------------|--------------------------------------------|--------------------------------------------|------------------------------------------|-------------------------------|
 | E.g. 15/07/2025| MS Copilot       | To help create an organised essay structure| ‘Generate ideas for structuring an essay on...’ | [insert link]                          | introduction                  |
-|                |                  |                                            |                                            |                                          |                               |
-|                |                  |                                            |                                            |                                          |                               |
-|                |                  |                                            |                                            |                                          |                               |
-|                |                  |                                            |                                            |                                          |                               |
+| 10/12/2025     |  ChatGPT         | To help write code to display the covariances | 'Would a covariance plot be a meaningful addition to the EDA? And if so, how would I write the code to do so?' |                                    | Problem introduction            |
+| 10/12/2025     |  ChatGPT        |  To help write code to create a confusion matrix | 'How do I write python code for an easily read confusion matrix?'  |                                          | Linear Discriminant Analysis                              |
+| 10/12/2025     |  ChatGPT        |  To help troubleshoot and amend the previous code for a QDA  | 'How can I adapt this code to create a confusion matrix for qda?'     |                 | Quadratic Discriminant Analysis       |
 |                |                  |                                            |                                            |                                          |                               |
 |                |                  |                                            |                                            |                                          |                               |
 |                |                  |                                            |                                            |                                          |                               |

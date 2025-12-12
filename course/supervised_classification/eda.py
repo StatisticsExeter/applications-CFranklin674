@@ -3,6 +3,7 @@ import plotly.express as px
 from pathlib import Path
 from course.utils import find_project_root
 
+
 VIGNETTE_DIR = Path('data_cache') / 'vignettes' / 'supervised_classification'
 
 
@@ -21,6 +22,7 @@ def scatter_onecat(df, cat_column, title):
     and overall title specfied by title"""
     numeric_values = df.select_dtypes(include='number')
     fig = px.scatter_matrix(numeric_values, color=df[cat_column], title=title)
+    fig.update_traces(marker=dict(size=5, opacity=0.5))
     return fig
 
 
@@ -45,3 +47,10 @@ def get_summary_stats():
     summary_stats = get_grouped_stats(df, cat_column)
     outpath_s = base_dir / VIGNETTE_DIR / 'grouped_stats.csv'
     summary_stats.to_csv(outpath_s)
+
+
+def data_preview():
+    base_dir = find_project_root()
+    df = pd.read_csv(base_dir / 'data_cache' / 'energy.csv')
+    outpath = base_dir / VIGNETTE_DIR / 'preview.html'
+    df.head().to_html(outpath, index=False)
