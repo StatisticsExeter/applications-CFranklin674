@@ -9,21 +9,25 @@ format:
 ---
 
 
+## The Dataset
 
-## Your task
+In March 2025, data on the [Energy Certificates](https://epc.opendatacommunities.org/) of a non-random sample of UK housing were obtained. The full dataset contains 93 variables on a wide range of metrics such as:
 
-This material is provided as context to the problem. You should rewrite it as you see fit.
-
-## The Problem
-
-Data on [Energy Certificates](https://epc.opendatacommunities.org/) were downloaded in March 2025. These certificates are a non-random sample of UK housing, and contain information such as:
-
-- Property energy efficiency: The core data is the energy efficiency rating, which ranges from A (most efficient) to G (least efficient).
-- CO2 emissions: The data includes information on the building's likely carbon dioxide emissions.
-- Energy costs: Potential costs for heating and lighting the property are provided.
+- The energy efficiency of the property: This is the core data and is rated from A (most efficient) to G (least efficient).
+- CO2 emissions: This is the building's likely carbon dioxide emissions.
+- Energy costs: These are the potential costs for heating and lighting the property.
 - Improvement recommendations: Each EPC lists cost-effective ways to improve the building's energy performance.
 
-We have been asked by a local company to determine whether some local authorities are better than others in terms of reducing the carbon footprint of properties in their area.  However, some authorities have older housing stock which is innately has a larger carbon footprint. Likewise, some have larger properties than others.  The initial brief is to carry out an aggregate data analysis where the unit of analysis is a local authority.  We have been asked to consider the average carbon footprint of a house in a given area conditional on being pre- or post-1930 and having between 1 and 10 heated rooms.  This should let you fit a model which has fixed effects for the number of houses of pre-1930, post-1930 and 1, 2, 3, ..., 10 heated rooms
+As we move toward being a more energy conscious society, it is important that we develop strategies to reduce the carbon footprint of UK housing by offering the right solutions to the right properties.
+
+
+## Problem Introduction
+
+What this report asks is: are some local authorities better than others at reducing the carbon footprint of the properties in their area?
+
+This is an interesting question and there are many factors that need to be considered. For example, some authorities have older housing stock which is innately has a larger carbon footprint. Likewise, some have larger properties than others. 
+
+For the purposes of this report, we will be looking at considering the average carbon footprint of a house in a given area conditional on being pre- or post-1930 and having between 1 and 10 heated rooms. We will be carrying out an aggregate data analysis where the unit of analysis is a local authority and fit a model which has fixed effects for the number of houses of pre-1930, post-1930 and 1, 2, 3, ..., 10 heated rooms. Here is the model:
 
 
 $$Y_{ji} = \beta_0 + \beta_1 x_{j}^{(\text{old})} + \sum_{r=1}^{10} \beta_r x_{j}^{(r)} + \gamma_j$$
@@ -31,7 +35,7 @@ $$Y_{ji} = \beta_0 + \beta_1 x_{j}^{(\text{old})} + \sum_{r=1}^{10} \beta_r x_{j
 Where 
 
 - $Y_{ji}$ is the average carbon dioxide emissions for authority $j$ for each house type $i$ (old/new, 1, 2, ..., 10 rooms)
-- $x_{j}^{(old)}$ is the number of houses that are older than 1930 in authority $j$
+- $x_{j}^{(old)}$ is the number of houses that are newer than 1930 in authority $j$
 - $x_{j}^r$ are the number of houses with $r=1, 2, ..., 10$ rooms in authority $j$ 
 - $\beta_0$, $\beta_1$, $\beta_r$ are the fixed effects
 - $\gamma_j$ is the random effect for local authority $j$
@@ -39,21 +43,43 @@ Where
 
 
 
-## The Data
+## EDA
 
-Some initial exploratory data analysis shows us how the carbon emissions vary by age of property and by the number of rooms:
+We will begin by performing some exploratory data analysis. The following box plot shows how the carbon emissions vary by age of property.
 
 
+```{python}
+#| echo: false
+html_path = "../../data_cache/vignettes/regression/boxplot_age.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
 
-![](../../data_cache/vignettes/regression/boxplot_age.html){width="100%" height="600px"}
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
 
-![](../../data_cache/vignettes/regression/boxplot_rooms.html){width="100%" height="600px"}
+We can see that the carbon emissions of older properties are more spread out than recent houses and they are also greater on average. This makes logical sense, as newer houses are likely to be built with an understanding of carbon emissions and a drive to reduce them.
 
+Another way to look at the data is to split by the number of rooms.
+
+
+```{python}
+#| echo: false
+html_path = "../../data_cache/vignettes/regression/boxplot_rooms.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
+
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
+
+This shows some interesting insights. Unsurprisingly, houses with 10 rooms have the greatest spread, are greater than all others on average, and their minimum value is higher than the median of houses with one to six rooms. At the other end of the spectrum, properties with four rooms vary the least and are very consistent with their carbon emissions, and typically the lowest carbon emissions comes from houses with two rooms.
+
+Now that we have an idea of how the data is spread, we can look at fitting a linear model to predict carbon emissions based on these factors.
 
 ## The model
 
-A model can be fitted and a summary of the fixed effects produced
-
+The model, described above, fits a linear regression with fixed effects of age and number of rooms. Below is a summary of the model.
 
 ```{python}
 #| echo: false
@@ -64,18 +90,40 @@ with open('../../data_cache/vignettes/regression/model_fit.txt') as f:
     print(content)
 ```
 
+This model shows that the age and number of rooms of a property are strong predictors of carbon emissions. The reference category of 'old' has an estimated carbon emission of 2.409, whereas the 'recent' group is approximately 2.981 lower and the number of rooms 1.054 greater. Also, all of the values have an extremely small p-value, so are statistically significant.
+
+Now that we have a model, let's run some diagnostics. Firstly, one of the assumptions that is made to be able to perform linear regression is homoscedasticity, or constant variance. By plotting a residuals vs fitted graph, we can test this assumption since the points should fall in a random scatter around zero if there is constant variance.
+
+```{python}
+#| echo: false
+html_path = "../../data_cache/models/residuals_vs_fitted.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
+
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
+
+It is fairly clear that our points do not fall in a random scatter around zero, but instead there seems to be some sort of curved pattern going on. This suggests that the variance is not constant throughout and the model may not be fully capturing the relationship.
+
 
 ## The key insight
 
-We've been asked to rate local authority performance, so the most important result is a ``caterpillar plot'' of the random effects.
+Finally, we can use a caterpillar plot to visualise the confidence intervals of the random effects for each local authority to help answer the original question.
 
+```{python}
+#| echo: false
+html_path = "../../data_cache/vignettes/regression/caterpillar.html"
+with open(html_path, "r", encoding="utf-8") as f:
+    html_content = f.read()
 
-![](../../data_cache/vignettes/regression/caterpillar.html){width="100%" height="600px"}
+from IPython.display import display, HTML
+display(HTML(html_content))
+```
 
-##  Additional credit
+Here we can see that most of the local authorities have average random effects, but there are a few statistically significant ones. Seven that significantly increase the carbon emissions and one the significantly decreases. 
 
-For additional credit you might like to enhance the exploratory data analysis. You could consider residual diagnostics to check the validity of the model fit. You may also like to consider the appropriateness of the adjusting variables age and number of rooms. You could consider extracting further variables from the database and fitting a slightly more elaborate model.
-
+Overall, we have found that age and number of rooms are strong predictors of carbon emissions, although the residuals vs fitted plot suggested there may be a non-linear relationship instead. And our caterpillar plot showed there are some statistically significant local authorities, ones that increase carbo emissions and ones that decrease.
 
 ## Record of AI use for MTHM503 Regression coursework
 
@@ -84,7 +132,7 @@ Instructions: You can use this document to record when, how and why you used Gen
 | **Date**       | **AI tool used** | **Purpose**                                | **Prompt**                                 | **Hyperlink to output (where possible)** | **Section of work used for** |
 |----------------|------------------|--------------------------------------------|--------------------------------------------|------------------------------------------|-------------------------------|
 | E.g. 15/07/2025| MS Copilot       | To help create an organised essay structure| ‘Generate ideas for structuring an essay on...’ | [insert link]                          | introduction                  |
-|                |                  |                                            |                                            |                                          |                               |
+| 11/12/2025               | ChatGPT                 | To create and troubleshoot code to plot a residuals vs fitted graph |  'I have performed multiple linear regression on some data and want to check the residuals vs fitted. I need a simple plotly express python code to do so.'       |                                          | The model                              |
 |                |                  |                                            |                                            |                                          |                               |
 |                |                  |                                            |                                            |                                          |                               |
 |                |                  |                                            |                                            |                                          |                               |

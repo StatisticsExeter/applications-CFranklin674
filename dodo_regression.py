@@ -2,7 +2,7 @@ from pathlib import Path
 from doit.tools import config_changed
 from course.utils import load_pg_data
 from course.regression.eda import boxplot_age, boxplot_rooms
-from course.regression.fit_model import fit_model
+from course.regression.fit_model import fit_model, regression_diagnostics
 from course.regression.caterpillar_reffs import plot_caterpillar
 
 
@@ -52,11 +52,14 @@ def task_eda():
 
 def task_fit_model():
     return {
-        'actions': [fit_model],
+        'actions': [fit_model, regression_diagnostics],
         'file_dep': ['data_cache/la_energy.csv',
                      'course/regression/fit_model.py'],
         'targets': ['data_cache/vignettes/model_fit.txt',
-                    'data_cache/models/reffs.csv'],
+                    'data_cache/models/reffs.csv',
+                    'data_cache/vignettes/residuals_vs_fitted.html',
+                    'data_cache/vignettes/residuals_vs_{col}.html',
+                    'data_cache/vignettes/cooks_distance.html'],
     }
 
 

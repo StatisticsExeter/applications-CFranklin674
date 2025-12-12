@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import statsmodels.formula.api as smf
+import statsmodels.api as sm
+import plotly.express as px
 from pathlib import Path
 from course.utils import find_project_root
 
@@ -40,3 +42,28 @@ def fit_model():
     outpath = VIGNETTE_DIR / 'model_fit.txt'
     _random_effects(results).to_csv(base_dir / 'data_cache' / 'models' / 'reffs.csv')
     _save_model_summary(results, outpath)
+
+
+def regression_diagnostics():
+    base_dir = find_project_root()
+    df = pd.read_csv(base_dir / 'data_cache' / 'la_energy.csv')
+    results = _fit_model(df)
+    df_plot = df.copy()
+    df_plot['fitted'] = results.fittedvalues
+    df_plot['residuals'] = df_plot['shortfall'] - df_plot['fitted']
+    
+    # Create plot
+    fig = px.scatter(
+        df_plot,
+        x='fitted',
+        y='residuals',
+        labels={'fitted': 'Fitted values', 'residuals': 'Residuals'},
+        title='Residuals vs Fitted'
+    )
+    fig.add_hline(y=0, line_dash='dash', line_color='red')
+    
+    # Save interactive HTML
+    outpath = Path('data_cache/models/residuals_vs_fitted.html')
+    outpath.parent.mkdir(parents=True, exist_ok=True)
+    fig.write_html(outpath)
+    
